@@ -1,0 +1,94 @@
+import numpy as np
+import heapq
+import torch
+from PIL import Image
+import RPi.GPIO as GPIO
+from time import sleep
+from cryptography.fernet import Fernet
+
+# -----------------------------
+# A* PATHFINDING FOR NAVIGATION
+# -----------------------------
+def heuristic(a, b):
+    return np.linalg.norm(np.array(a) - np.array(b))
+
+def astar(grid, start, goal):
+    neighbors = [(0,1),(1,0),(0,-1),(-1,0)]
+ open_set = []
+    heapq.heappush(open_set, (0, start))
+    came_from = {}
+    g_score = {start: 0}
+    f_score = {start: heuristic(start, goal)}
+
+    while open_set:
+        current = heapq.heappop(open_set)[1]
+        if current == goal:
+            path = []
+            while current in came_from:
+                path.append(current)
+                current = came_from[current]
+            return path[::-1]
+
+        for dx, dy in neighbors:
+            neighbor = (current[0]+dx, current[1]+dy)
+            if 0 <= neighbor[0] < grid.shape[0] and 0 <= neighbor[1] < grid.shape[1] and grid[neighbor] == 0:
+                tentative_g = g_score[current] + 1
+                if neighbor not in g_score or tentative_g < g_score[neighbor]:
+                    came_from[neighbor] = current
+                    g_score[neighbor] = tentative_g
+                    f_score[neighbor] = tentative_g + heuristic(neighbor, goal)
+                    heapq.heappush(open_set, (f_score[neighbor], neighbor))
+    return None
+def detect_objects(image_path='test.jpg'):
+    model = torch.hub.load('ultralytics/yolov5', 'yolov5s', trust_repo=True)
+    results = model(image_path)
+    results.print()
+    results.show()
+
+# -----------------------------
+# ROBOTIC ARM CONTROL (SERVO)
+# -----------------------------
+def move_servo(angle, pin=17):
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(pin, GPIO.OUT)
+    pwm = GPIO.PWM(pin, 50)
+    pwm.start(0)
+
+    duty = angle / 18 + 2
+    GPIO.output(pin, True)
+    pwm.ChangeDutyCycle(duty)
+    sleep(1)
+    GPIO.output(pin, False)
+    pwm.ChangeDutyCycle(0)
+
+    pwm.stop()
+    GPIO.cleanup()
+def secure_data_transmission(data):
+    key = Fernet.generate_key()
+    cipher = Fernet(key)
+
+    encrypted = cipher.encrypt(data.encode())
+    decrypted = cipher.decrypt(encrypted).decode()
+
+    print(f"Original: {data}")
+    print(f"Encrypted: {encrypted}")
+    print(f"Decrypted: {decrypted}")
+def main():
+    # 1. Path Planning
+    grid = np.zeros((10, 10))
+    grid[5, 2:7] = 1  # Obstacle
+    start = (0, 0)
+    goal = (9, 9)
+    path = astar(grid, start, goal)
+    print(f"Path from {start} to {goal}:\n{path}")
+
+    # 2. Object Detection
+    detect_objects('test.jpg')  # Replace with actual image
+
+    # 3. Robotic Motion
+    print("Moving robotic arm to 90 degrees...")
+    move_servo(90)
+
+    # 4. Secure Transmission
+    secure_data_transmission("Robot location: (24.45, 85.67)")
+

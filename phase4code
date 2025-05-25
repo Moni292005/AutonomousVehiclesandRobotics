@@ -1,0 +1,66 @@
+import time
+import random
+
+class SensorData:
+    def _init_(self):
+        self.obstacle_distance = 100 
+        self.traffic_light = "green"
+
+    def update(self):
+        self.obstacle_distance = random.randint(30, 200)
+        self.traffic_light = random.choice(["green", "yellow", "red"])
+
+class AutonomousVehicle:
+    def _init_(self):
+        self.speed = 0
+        self.steering_angle = 0
+
+    def control_logic(self, sensor_data):
+        if sensor_data.obstacle_distance < 50:
+            self.stop()
+        elif sensor_data.traffic_light == "red":
+  self.stop()
+        else:
+            self.drive_forward()
+
+    def drive_forward(self):
+        self.speed = 40
+        self.steering_angle = 0
+        print("Driving forward at", self.speed, "km/h")
+
+    def stop(self):
+        self.speed = 0
+        print("Stopping the vehicle")
+
+class RoboticArm:
+    def _init_(self):
+        self.gripped = False
+
+    def pick_object(self):
+        print("Picking up the object...")
+        time.sleep(1)
+        self.gripped = True
+        print("Object picked.")
+
+    def place_object(self):
+        if self.gripped:
+            print("Placing the object...")
+            time.sleep(1)
+            self.gripped = False
+            print("Object placed.")
+
+
+sensor = SensorData()
+vehicle = AutonomousVehicle()
+arm = RoboticArm()
+
+for _ in range(5): 
+    sensor.update()
+    print("\n[Sensor] Distance:", sensor.obstacle_distance, "cm | Light:", sensor.traffic_light)
+    vehicle.control_logic(sensor)
+
+    if sensor.obstacle_distance < 50:
+        arm.pick_object()
+        arm.place_object()
+
+    time.sleep(2)

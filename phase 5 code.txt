@@ -1,0 +1,17 @@
+import random
+
+def get_sensor_data():
+    return random.randint(0, 100)  # Simulated distance in cm
+
+def decide_action(distance):
+    if distance < 20:
+        return "Stop - Obstacle too close"
+    elif distance < 50:
+        return "Slow Down"
+    else:
+        return "Move Forward"
+
+for _ in range(5):
+    dist = get_sensor_data()
+    action = decide_action(dist)
+    print(f"Distance: {dist} cm -> Action: {action}")
